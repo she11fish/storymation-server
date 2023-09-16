@@ -2,6 +2,7 @@ import express from "express";
 import cors from 'cors'
 import apiRouter from './routes/index.js'
 import { config } from "dotenv"
+import bodyParser from "body-parser";
 config()
 
 const app = express();
@@ -19,6 +20,9 @@ app.options('*', cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({
+    extended: true
+}));
 
 app.use('/api/v1', apiRouter)
 
