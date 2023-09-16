@@ -57,16 +57,21 @@ async function runConversationGPT(req, res, prompt) {
     try {
         messages.push({"role": "user", "content": prompt})
         const response = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo",
+            model: "gpt-4",
             messages: messages,
             temperature: 0.7
         }); 
 
+        imageLinks = []
         var content = JSON.parse(response.choices[0].message.content); 
+        var jsonDump = {}; 
+        jsonDump["Characters"] = []; 
         for (const element of content["Characters"]) {
             const imageLink = await generateImage(req, res, element["Type"] + ", " + element["Description"] + ", cartoony")
-            imageLinks.push(imageLink)
+            jsonDump["Characters"].push({ "Type": element["Type"], "Actions": element["Actions"], "Size": element["Size"], "Sprite": imageLink })
         }
+
+        // dump json into edem
     } catch(e) {
         res.status(e.status).send(e)
     }
@@ -101,7 +106,8 @@ async function runConversationCohere(req, res, prompt) {
 async function generateImage(req, res, prompt) {
     try {
         const image = await openai.images.generate({ prompt: prompt });
-        return image.data[0].url
+        imageLinks.push(image.data[0].url); 
+        // return image.data[0].url
     } catch(e) {
         res.status(500).send(e)
     }
