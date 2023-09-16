@@ -89,7 +89,9 @@ Provide your response in the following JSON format, and nothing else:
 {Any other characters in the scene}
 ]
 }
-\end
+\\end
+
+NOTE: The position of the characters is interpolated between each action. Only add "actions" when that interpolation needs to be changed.
 
 Your input: 
 {
@@ -132,26 +134,28 @@ async function runConversationCohere(req, res, prompt) {
         },
         data: {
             model: 'command-nightly', 
-            max_tokens: 300,
+            max_tokens: 2000,
             truncate: 'END',
             return_likelihoods: 'NONE',
             prompt: msg + prompt + `"\n}`, 
             temperature: 0.3,
-            
+            stopSequences: ["\\end"],
         }
-    };
-      
+    }
     try {
         const response = await axios.request(options)
+        console.log(response.data.generations[0].text)
         // scenes = JSON.parse(response.data.generations[0].text)["Scenes"].length
-        var content = JSON.parse(response.data.generations[0].text); 
+        /*var content = JSON.parse(response.data.generations[0].text); 
         var jsonDump = {}; 
         jsonDump["Characters"] = []; 
         for (const element of content["Characters"]) {
             const imageLink = await generateImage(req, res, element["Type"] + ", " + element["Description"] + ", cartoony")
             jsonDump["Characters"].push({ "Type": element["Type"], "Actions": element["Actions"], "Size": element["Size"], "Sprite": imageLink })
         }
+        console.log(jsonDump)*/
     } catch(e) {
+        console.error(e)
         res.status(500).send(e)
     }
 }
