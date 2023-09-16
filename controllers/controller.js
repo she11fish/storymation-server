@@ -1,6 +1,18 @@
 import OpenAI from 'openai';
 import { config } from "dotenv";
 import axios from 'axios';
+import {WebSocketServer} from "ws";
+
+const wss = new WebSocketServer({ port: 5500 })
+
+wss.on('connection', function connection(ws) {
+    ws.on('error', console.error);
+  
+    ws.on('message', function message(data) {
+        let stringData = data.toString()
+        prompt(stringData, ws)
+    });
+});
 
 config()
 const openai = new OpenAI({
@@ -139,7 +151,7 @@ Your input:
 
 let scenes = 0
 
-async function runConversationGPT(req, res, prompt) {
+async function runConversationGPT(data, ws, prompt) {
     try {
         messages.push({"role": "user", "content": prompt})
         const response = await openai.chat.completions.create({
@@ -152,18 +164,19 @@ async function runConversationGPT(req, res, prompt) {
         var jsonDump = {}; 
         jsonDump["Characters"] = []; 
         for (const element of content["Characters"]) {
-            const imageLink = await generateImage(req, res, element["Type"] + ", " + element["Description"] + ", disney")
+            const imageLink = await generateImage(data, ws, element["Type"] + ", " + element["Description"] + ", cartoony")
             jsonDump["Characters"].push({ "Type": element["Type"], "Actions": element["Actions"], "Size": element["Size"], "Sprite": imageLink })
         }
 
+
         // dump json into edem
     } catch(e) {
-        res.status(e.status).send(e)
+        ws.send(e)
     }
     
 }
 
-async function runConversationCohere(req, res, prompt) {
+async function runConversationCohere(data, ws, prompt) {
     const options = {
         method: 'POST',
         url: 'https://api.cohere.ai/v1/generate',
@@ -190,43 +203,45 @@ async function runConversationCohere(req, res, prompt) {
         var jsonDump = {}; 
         jsonDump["Characters"] = []; 
         for (const element of content["Characters"]) {
-            const imageLink = await generateImage(req, res, element["Type"] + ", " + element["Description"] + ", disney")
+            const imageLink = await generateImage(data, ws, element["Type"] + ", " + element["Description"] + ", cartoony")
             jsonDump["Characters"].push({ "Type": element["Type"], "Actions": element["Actions"], "Size": element["Size"], "Sprite": imageLink })
         }
         console.log(jsonDump)
     } catch(e) {
-console.error(e)
-        res.status(500).send(e)
+        console.error(e)
+        ws.send(e)
     }
 }
 
-async function generateImage(req, res, prompt) {
+async function generateImage(data, ws, prompt) {
     try {
         const image = await openai.images.generate({ prompt: prompt }); 
         return image.data[0].url
     } catch(e) {
-        res.status(500).send(e)
+        ws.send(e)
     }
 }
 
-export async function prompt(req, res) {
-    const { prompt } = req.body
-    await runConversationCohere(req, res, prompt)
-    , await runConversationGPT(req, res, prompt)
-    , await generateImage(req, res, prompt)
+export async function prompt(data, ws) {
+    const prompt = data
+    console.log(data)
+    console.log(prompt)
+    await runConversationCohere(data, ws, prompt)
+    //, await runConversationGPT(data, ws, prompt)
+    , await generateImage(data, ws, prompt)
 }
 
-export async function testGPT(req, res) {
-    const { prompt } = req.body
-    await runConversationGPT(req, res, prompt)
+export async function testGPT(data, ws) {
+    const prompt = data
+    await runConversationGPT(data, ws, prompt)
 }
 
-export async function testCohere(req, res) {
-    const { prompt } = req.body
-    await runConversationCohere(req, res, prompt)
+export async function testCohere(data, ws) {
+    const prompt = data
+    await runConversationCohere(data, ws, prompt)
 }
 
-export async function createImage(req, res) {
-    const { prompt } = req.body
-    await generateImage(req, res, prompt)
+export async function createImage(data, ws) {
+    const prompt = data
+    await generateImage(data, ws, prompt)
 }
