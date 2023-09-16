@@ -226,7 +226,7 @@ export async function prompt(data, ws) {
     const prompt = data
     console.log(data)
     console.log(prompt)
-    await runConversationCohere(data, ws, prompt)
+    await runConversationGPT(data, ws, prompt)
     //, await runConversationGPT(data, ws, prompt)
     , await generateImage(data, ws, prompt)
 }
