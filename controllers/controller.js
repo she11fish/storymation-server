@@ -161,18 +161,20 @@ async function runConversationGPT(data, ws, prompt) {
         }); 
 
         var content = JSON.parse(response.choices[0].message.content); 
+
         var jsonDump = {}; 
         jsonDump["Characters"] = []; 
         for (const element of content["Characters"]) {
-            const imageLink = await generateImage(data, ws, element["Type"] + ", " + element["Description"] + ", cartoony")
+            const imageLink = await generateImage(data, ws, element["Type"] + ", " + element["Description"] + ", cartoony", false)
             jsonDump["Characters"].push({ "Type": element["Type"], "Actions": element["Actions"], "Size": element["Size"], "Sprite": imageLink })
         }
-        console.log(jsonDump)
-        ws.send(JSON.stringify(jsonDump))
+        const backgroundImageLink = await generateImage(data, ws, "Background, " + content["Background"] + ", cartoony", true)
+        jsonDump["Background"] = backgroundImageLink
 
-        // dump json into edem
+        ws.send(JSON.stringify(jsonDump))
+        
     } catch(e) {
-        ws.send(e)
+        ws.send(e.toString())
     }
     
 }
@@ -215,9 +217,9 @@ async function runConversationCohere(data, ws, prompt) {
     }
 }
 
-async function generateImage(data, ws, prompt) {
+async function generateImage(data, ws, prompt, bg) {
     try {
-        const image = await openai.images.generate({ prompt: prompt });
+        const image = await openai.images.generate({ prompt: prompt, n: 1, size: bg ? "1024x1024" : "256x256" });
         ws.send(image.data[0].url)
         return image.data[0].url
     } catch(e) {
