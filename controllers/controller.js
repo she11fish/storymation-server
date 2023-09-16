@@ -91,11 +91,51 @@ Provide your response in the following JSON format, and nothing else:
 }
 \\end
 
-NOTE: The position of the characters is interpolated between each action. Only add "actions" when that interpolation needs to be changed.
+Sample input:
+{
+"Scene": "A lion is chasing a zebra in a forest."
+}
+
+Sample output:
+{
+"Characters": [
+{
+“Type": "Lion", 
+“Description”: "Yellow, furry, black mane, side view, roaring",
+"Actions": [
+{
+"Position": "10%, 30%",
+"Time": "0"
+},
+{
+"Position": "65%, 35%",
+"Time": "5",
+]
+},
+{
+"Type": "Zebra",
+"Description": "Striped black-and-white, scared, side view",
+"Actions": [
+{
+"Position": "40%, 35%",
+"Time": "0",
+},
+{
+"Position": "75%, 38%",
+"Time": "5",
+},
+]
+},
+]
+}
+\\end
+In the above sample output, note how the Lion and the Zebra's x position and y position get CLOSER over time (but not the same(, due to the Lion CHASING the Zebra, but never being specified to catch it within the scene.
+Make all positional changes realistic, and factor in the characters' motivations towards each other/other objects.
 
 Your input: 
 {
-"Scene": "`; 
+"Scene": "A man chases towards a woman with a knife in his hands."
+}`; 
 
 let scenes = 0
 
@@ -112,7 +152,7 @@ async function runConversationGPT(req, res, prompt) {
         var jsonDump = {}; 
         jsonDump["Characters"] = []; 
         for (const element of content["Characters"]) {
-            const imageLink = await generateImage(req, res, element["Type"] + ", " + element["Description"] + ", cartoony")
+            const imageLink = await generateImage(req, res, element["Type"] + ", " + element["Description"] + ", disney")
             jsonDump["Characters"].push({ "Type": element["Type"], "Actions": element["Actions"], "Size": element["Size"], "Sprite": imageLink })
         }
 
@@ -138,7 +178,7 @@ async function runConversationCohere(req, res, prompt) {
             truncate: 'END',
             return_likelihoods: 'NONE',
             prompt: msg + prompt + `"\n}`, 
-            temperature: 0.3,
+            temperature: 0.6,
             stopSequences: ["\\end"],
         }
     }
@@ -146,16 +186,16 @@ async function runConversationCohere(req, res, prompt) {
         const response = await axios.request(options)
         console.log(response.data.generations[0].text)
         // scenes = JSON.parse(response.data.generations[0].text)["Scenes"].length
-        /*var content = JSON.parse(response.data.generations[0].text); 
+        var content = JSON.parse(response.data.generations[0].text); 
         var jsonDump = {}; 
         jsonDump["Characters"] = []; 
         for (const element of content["Characters"]) {
-            const imageLink = await generateImage(req, res, element["Type"] + ", " + element["Description"] + ", cartoony")
+            const imageLink = await generateImage(req, res, element["Type"] + ", " + element["Description"] + ", disney")
             jsonDump["Characters"].push({ "Type": element["Type"], "Actions": element["Actions"], "Size": element["Size"], "Sprite": imageLink })
         }
-        console.log(jsonDump)*/
+        console.log(jsonDump)
     } catch(e) {
-        console.error(e)
+console.error(e)
         res.status(500).send(e)
     }
 }
