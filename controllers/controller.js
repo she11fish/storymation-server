@@ -149,6 +149,16 @@ Your input:
 "Scene": "A man chases towards a woman with a knife in his hands."
 }`; 
 
+const initSceneMsg = `You will be provided a story as input. Break down the story into individual scenes as output, formatted in the following strict JSON structure:
+
+{
+"Scenes": ["{part of scene 1 with full context}", "{part of scene 2 with full context}", "{part of scene 3 with full context}", etc.]
+}
+\\end
+
+Your input:
+"`; 
+
 let scenes = 0
 
 async function runConversationGPT(data, ws, prompt) {
@@ -217,6 +227,39 @@ async function runConversationCohere(data, ws, prompt) {
     }
 }
 
+async function generateScenes(data, ws, prompt) {
+    const options = {
+        method: 'POST',
+        url: 'https://api.cohere.ai/v1/generate',
+        headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+            authorization: process.env.COHERE_SECRET_KEY
+        },
+        data: {
+            model: 'command-nightly', 
+            max_tokens: 1000,
+            truncate: 'END',
+            return_likelihoods: 'NONE',
+            prompt: initSceneMsg + prompt + `"`, 
+            temperature: 0.6,
+            stopSequences: ["\\end"],
+        }
+    }
+    try {
+        const response = await axios.request(options)
+        console.log(response.data.generations[0].text); 
+        var content = JSON.parse(response.data.generations[0].text); 
+        for (const element of content["Scenes"]) {
+            await runConversationGPT(data, ws, element); 
+        }
+        ws.send(JSON.stringify({"hello": "yes"}))
+    } catch(e) {
+        console.error(e)
+        ws.send(e)
+    }
+}
+
 async function generateImage(data, ws, prompt, bg) {
     try {
         const image = await openai.images.generate({ prompt: prompt, n: 1, size: bg ? "1024x1024" : "256x256" });
@@ -230,7 +273,8 @@ async function generateImage(data, ws, prompt, bg) {
 export async function prompt(data, ws) {
     const prompt = data
     //await runConversationCohere(data, ws, prompt)
-    await runConversationGPT(data, ws, prompt)
+    // await runConversationGPT(data, ws, prompt)
+    await generateScenes(data, ws, prompt)
     //await generateImage(data, ws, prompt)
 }
 
