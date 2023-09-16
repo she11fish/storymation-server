@@ -49,23 +49,24 @@ const messages = [{"role": "system", "content": `
         ]
         }`}]
 
+const imageLinks = []
+
+let scenes = 0
+
 async function runConversationGPT(req, res, prompt) {
     try {
         messages.push({"role": "user", "content": prompt})
         const response = await openai.chat.completions.create({
-            model: "gpt-4",
+            model: "gpt-3.5-turbo",
             messages: messages,
             temperature: 0.7
         }); 
 
-        /*var content = response.choices[0].message.content; 
-        JSON.parse(content); 
-        content["Characters"].forEach(element => {
-            createImage(element["Type"] + ", " + element["Description"] + ", cartoony")
-        });*/
-
-        res.status(200).send(response.choices[0].message.content)
-        return response.choices[0].message.content
+        var content = JSON.parse(response.choices[0].message.content); 
+        for (const element of content["Characters"]) {
+            const imageLink = await generateImage(req, res, element["Type"] + ", " + element["Description"] + ", cartoony")
+            imageLinks.push(imageLink)
+        }
     } catch(e) {
         res.status(e.status).send(e)
     }
@@ -91,8 +92,7 @@ async function runConversationCohere(req, res, prompt) {
       
     try {
         const response = await axios.request(options)
-        res.status(200).send(response.data.generations[0].text)
-        return response.data.generations[0].text
+        scenes = JSON.parse(response.data.generations[0].text)["Scenes"].length
     } catch(e) {
         res.status(500).send(e)
     }
@@ -101,7 +101,6 @@ async function runConversationCohere(req, res, prompt) {
 async function generateImage(req, res, prompt) {
     try {
         const image = await openai.images.generate({ prompt: prompt });
-        res.status(200).send(image.data[0].url);
         return image.data[0].url
     } catch(e) {
         res.status(500).send(e)
@@ -110,19 +109,21 @@ async function generateImage(req, res, prompt) {
 
 export async function prompt(req, res) {
     const { prompt } = req.body
-    res.json([await runConversationCohere(req, res, prompt)
+    await runConversationCohere(req, res, prompt)
     , await runConversationGPT(req, res, prompt)
-    , await generateImage(req, res, prompt)])
+    , await generateImage(req, res, prompt)
 }
 
 export async function testGPT(req, res) {
     const { prompt } = req.body
     await runConversationGPT(req, res, prompt)
+    res.status(200).send(imageLinks)
 }
 
 export async function testCohere(req, res) {
     const { prompt } = req.body
     await runConversationCohere(req, res, prompt)
+    res.status(200).send(imageLinks)
 }
 
 export async function createImage(req, res) {
