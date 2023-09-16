@@ -276,6 +276,7 @@ export async function prompt(data, ws) {
     // await runConversationGPT(data, ws, prompt)
     await generateScenes(data, ws, prompt)
     //await generateImage(data, ws, prompt)
+    // await emotionDetection(data, ws, prompt)
 }
 
 export async function testGPT(data, ws) {
@@ -291,4 +292,73 @@ export async function testCohere(data, ws) {
 export async function createImage(data, ws) {
     const prompt = data
     await generateImage(data, ws, prompt)
+}
+
+export async function emotionDetection(data, ws, prompt) {
+    const options = {
+        method: 'POST',
+        url: 'https://api.cohere.ai/v1/generate',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          authorization: process.env.COHERE_SECRET_KEY
+        },
+        data: {
+            model: 'command-nightly', 
+            max_tokens: 2000,
+            return_likelihoods: 'NONE',
+            temperature: 0.3,
+            prompt: 'Describe ' + `"${prompt}"` + " in one word only"
+        }
+      };
+      
+    const response = await axios.request(options)
+    const theme = response.data.generations[0].text.split(".")[0].trim()
+    console.log(theme)
+    
+    var youtube = google.youtube({
+        version: 'v3',
+        auth: process.env.YOUTUBE_API_KEY
+    });
+
+    youtube.search.list({
+        part: 'snippet',
+        q: theme + "music",
+        maxResults: 10
+    }, function (err, response) {
+        if (err) {
+            console.error('Error: ' + err);
+            return
+        }
+        const videos = response.data.items;
+        const randomVideo = videos[Math.floor(Math.random() * videos.length)]
+        
+        const videoLink = `https://www.youtube.com/watch?v=${randomVideo.id.videoId}`
+        console.log(`Title: ${randomVideo.snippet.title}`);
+        console.log(`Link: ${videoLink}`);
+        console.log('---');
+        
+        youtubedl(videoLink, {
+            output: './music/theme.mp3'
+        }).then((output) => {
+            console.log('Download completed:', output);
+            sendMP3File(ws)
+        })
+          .catch((error) => {
+            console.error('Error:', error);
+        });
+    });
+}
+
+function sendMP3File(ws) {
+    const mp3FilePath = './music/theme.mp3';
+    const mp3FileStream = fs.createReadStream(mp3FilePath);
+
+    mp3FileStream.on('data', (data) => {
+        ws.send(data, { binary: true }, (error) => {
+            if (error) {
+                console.error('Error sending data:', error);
+            }
+        });
+    });
 }
