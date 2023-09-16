@@ -57,6 +57,13 @@ async function runConversationGPT(req, res, prompt) {
             messages: messages,
             temperature: 0.7
         }); 
+
+        /*var content = response.choices[0].message.content; 
+        JSON.parse(content); 
+        content["Characters"].forEach(element => {
+            createImage(element["Type"] + ", " + element["Description"] + ", cartoony")
+        });*/
+
         res.status(200).send(response.choices[0].message.content)
         return response.choices[0].message.content
     } catch(e) {
