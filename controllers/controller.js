@@ -9,7 +9,7 @@ wss.on('connection', function connection(ws) {
     ws.on('error', console.error);
   
     ws.on('message', function message(data) {
-        let stringData = data.toString()
+        let stringData = data.toString() 
         prompt(stringData, ws)
     });
 });
@@ -167,7 +167,8 @@ async function runConversationGPT(data, ws, prompt) {
             const imageLink = await generateImage(data, ws, element["Type"] + ", " + element["Description"] + ", cartoony")
             jsonDump["Characters"].push({ "Type": element["Type"], "Actions": element["Actions"], "Size": element["Size"], "Sprite": imageLink })
         }
-
+        console.log(jsonDump)
+        ws.send(JSON.stringify(jsonDump))
 
         // dump json into edem
     } catch(e) {
@@ -207,6 +208,7 @@ async function runConversationCohere(data, ws, prompt) {
             jsonDump["Characters"].push({ "Type": element["Type"], "Actions": element["Actions"], "Size": element["Size"], "Sprite": imageLink })
         }
         console.log(jsonDump)
+        ws.send(JSON.stringify(jsonDump))
     } catch(e) {
         console.error(e)
         ws.send(e)
@@ -215,7 +217,8 @@ async function runConversationCohere(data, ws, prompt) {
 
 async function generateImage(data, ws, prompt) {
     try {
-        const image = await openai.images.generate({ prompt: prompt }); 
+        const image = await openai.images.generate({ prompt: prompt });
+        ws.send(image.data[0].url)
         return image.data[0].url
     } catch(e) {
         ws.send(e)
@@ -224,11 +227,9 @@ async function generateImage(data, ws, prompt) {
 
 export async function prompt(data, ws) {
     const prompt = data
-    console.log(data)
-    console.log(prompt)
-    await runConversationCohere(data, ws, prompt)
-    //, await runConversationGPT(data, ws, prompt)
-    , await generateImage(data, ws, prompt)
+    //await runConversationCohere(data, ws, prompt)
+    await runConversationGPT(data, ws, prompt)
+    //await generateImage(data, ws, prompt)
 }
 
 export async function testGPT(data, ws) {
