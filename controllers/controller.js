@@ -6,6 +6,7 @@ import {google} from "googleapis"
 import youtubedl from "youtube-dl-exec"
 import fs from "fs"
 import { rembg } from '@remove-background-ai/rembg.js'; 
+import client from "https";
 
 const wss = new WebSocketServer({ port: 5500 })
 
@@ -282,9 +283,18 @@ async function generateScenes(data, ws, prompt) {
 
 async function generateImage(data, ws, prompt, bg) {
     try {
-        const image = await openai.images.generate({ prompt: prompt, n: 1, size: bg ? "1024x1024" : "256x256" });
+        const image = await openai.images.generate({ prompt: prompt, n: 1, size: bg ? "1024x1024" : "256x256" }); 
 
-        return image.data[0].url
+        downloadImage(image.data[0].url, "/images")
+        rembg({
+            apiKey: process.env.REMGB_API_KEY, 
+            inputImagePath: "/imagesBGRemoved"
+        }).then(({ outputImagePath, cleanup }) => {
+            var base64str = base64_encode(outputImagePath)
+        })
+
+        // return image.data[0].url
+        return base64str
     } catch(e) {
         ws.send(e.toString())
     }
@@ -389,4 +399,27 @@ function sendMP3File(ws) {
             }
         });
     });
+}
+
+function downloadImage(url, filepath) {
+    return new Promise((resolve, reject) => {
+        client.get(url, (res) => {
+            if (res.statusCode === 200) {
+                res.pipe(fs.createWriteStream(filepath))
+                    .on('error', reject)
+                    .once('close', () => resolve(filepath));
+            } else {
+                // Consume response data to free up memory
+                res.resume();
+                reject(new Error(`Request Failed With a Status Code: ${res.statusCode}`));
+            }
+        });
+    });
+}
+
+function base64_encode(file) {
+    // read binary data
+    var bitmap = fs.readFileSync(file);
+    // convert binary data to base64 encoded string
+    return new Buffer(bitmap).toString('base64');
 }
