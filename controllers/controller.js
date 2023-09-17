@@ -310,7 +310,7 @@ export async function prompt(data, ws) {
     //await generateImage(data, ws, prompt)
     const promises = [
         // generateScenes(data, ws, prompt),
-        generateMusic(data, ws, prompt)
+        generateMusic(data, ws, prompt),
         generateScenes(data, ws, prompt),
         // emotionDetection(data, ws, prompt)
         // Add more functions to run concurrently here if needed
