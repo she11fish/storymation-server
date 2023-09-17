@@ -1,8 +1,8 @@
 import OpenAI from 'openai';
 import { config } from "dotenv";
 import axios from 'axios';
-import {WebSocketServer} from "ws";
-import {google} from "googleapis"
+import { WebSocketServer } from "ws";
+import { google } from "googleapis"
 import youtubedl from "youtube-dl-exec"
 import fs from "fs"
 import { rembg } from '@remove-background-ai/rembg.js'; 
@@ -352,14 +352,22 @@ export async function emotionDetection(data, ws, prompt) {
     youtube.search.list({
         part: 'snippet',
         q: theme + "music",
-        maxResults: 10
+        maxResults: 10,
+        type: 'video',
+        videoDuration: 'short'
     }, function (err, response) {
         if (err) {
             console.error('Error: ' + err);
             return
         }
         const videos = response.data.items;
-        const randomVideo = videos[Math.floor(Math.random() * videos.length)]
+        let randomVideo
+        for (const video of videos) {
+            if (video.id.videoId !== undefined) {
+                randomVideo = video
+                break
+            }
+        }
         
         const videoLink = `https://www.youtube.com/watch?v=${randomVideo.id.videoId}`
         console.log(`Title: ${randomVideo.snippet.title}`);
