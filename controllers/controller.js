@@ -20,7 +20,7 @@ const openai = new OpenAI({
 });
 
 const messages = [{"role": "system", "content": `
-        You are a cartoony animation simulator. Given a story prompt, provide a list of sprites that would be required in the animation, and their exact position on the screen in percent. Include the start position as an action.
+        You are a cartoony animation simulator. Given a story prompt, provide a list of sprites that would be required in the animation, and their exact position on the screen in percent. Include the start position as an action try to have scenes be less than 15 seconds.
 
         Each input will be provided in the following JSON format: 
 
@@ -36,28 +36,28 @@ const messages = [{"role": "system", "content": `
         {
         "Type": "{Type of character}", 
         "Description”: "{Character description, short}",
-        "Size": "{Size of character in screen percentage}",
+        "Size": "{Size of character in screen percentage}%",
         "Actions": [
         {
         "Position": "{x position in screen percentage from left]%, [y position in screen percentage from top}%",
         "Time": "{time in seconds at which action is taken}"
         },
-        {Any other actions taken by the character},
+        {Any other actions taken by the character while following the same format as "Actions"},
         ]
         },
         {
         "Type": "{Type of character}",
         "Description": "{Character description, visual}",
-        "Size": "{Size of character in screen percentage}",
+        "Size": "{Size of character in screen percentage}%",
         "Actions": [
         {
-        "Position": "{x position in screen percentage from left], [y position in screen percentage from top}",
+        "Position": "{x position in screen percentage from left]%, [y position in screen percentage from top}%",
         "Time": "{time at which action is taken}",
         }
-        {Any other actions taken by the character},
+        {Any other actions taken by the character while following the same format as "Actions"},
         ]
         },
-        {Any other characters in the scene}
+        {Any other characters in the scene while following the same format as "Characters"}
         ]
         }`}]
 
@@ -92,13 +92,13 @@ Provide your response in the following JSON format, and nothing else:
 "Size": "{Size of character in screen percentage}",
 "Actions": [
 {
-"Position": "{x position in screen percentage from left], [y position in screen percentage from top}",
+"Position": "{x position in screen percentage from left]%, [y position in screen percentage from top}%",
 "Time": "{time at which action is taken}",
 }
-{Any other actions taken by the character},
+{Any other actions taken by the character while following the same format above},
 ]
 },
-{Any other characters in the scene}
+{Any other characters in the scene while following the same format above}
 ]
 }
 \\end
@@ -117,11 +117,11 @@ Sample output:
 "Actions": [
 {
 "Position": "10%, 30%",
-"Time": "0"
+"Time": "0 seconds"
 },
 {
 "Position": "65%, 35%",
-"Time": "5",
+"Time": "5 seconds",
 ]
 },
 {
@@ -130,11 +130,11 @@ Sample output:
 "Actions": [
 {
 "Position": "40%, 35%",
-"Time": "0",
+"Time": "0 seconds",
 },
 {
 "Position": "75%, 38%",
-"Time": "5",
+"Time": "5 seconds",
 },
 ]
 },
@@ -172,7 +172,9 @@ async function runConversationGPT(data, ws, prompt) {
 
         var content = JSON.parse(response.choices[0].message.content); 
 
-        var jsonDump = {}; 
+        var jsonDump = {
+            type: "story"
+        }; 
         jsonDump["Characters"] = []; 
         for (const element of content["Characters"]) {
             const imageLink = await generateImage(data, ws, element["Type"] + ", " + element["Description"] + ", cartoony", false)
@@ -181,7 +183,7 @@ async function runConversationGPT(data, ws, prompt) {
         const backgroundImageLink = await generateImage(data, ws, "Background, " + content["Background"] + ", cartoony", true)
         jsonDump["Background"] = backgroundImageLink
 
-        ws.send(JSON.stringify(jsonDump))
+        ws.send(JSON.stringify(jsonDump)) //send to frontend
         
     } catch(e) {
         ws.send(e.toString())
@@ -215,15 +217,20 @@ async function runConversationCohere(data, ws, prompt) {
         var content = JSON.parse(response.data.generations[0].text); 
         var jsonDump = {}; 
         jsonDump["Characters"] = []; 
+        let max = 0;
         for (const element of content["Characters"]) {
+
             const imageLink = await generateImage(data, ws, element["Type"] + ", " + element["Description"] + ", cartoony")
+
             jsonDump["Characters"].push({ "Type": element["Type"], "Actions": element["Actions"], "Size": element["Size"], "Sprite": imageLink })
+
+
         }
         console.log(jsonDump)
         ws.send(JSON.stringify(jsonDump))
     } catch(e) {
         console.error(e)
-        ws.send(e)
+        ws.send(e.toString())
     }
 }
 
@@ -253,7 +260,7 @@ async function generateScenes(data, ws, prompt) {
         for (const element of content["Scenes"]) {
             await runConversationGPT(data, ws, element); 
         }
-        ws.send(JSON.stringify({"hello": "yes"}))
+        ws.send("Done")
     } catch(e) {
         console.error(e)
         ws.send(e)
@@ -263,10 +270,10 @@ async function generateScenes(data, ws, prompt) {
 async function generateImage(data, ws, prompt, bg) {
     try {
         const image = await openai.images.generate({ prompt: prompt, n: 1, size: bg ? "1024x1024" : "256x256" });
-        ws.send(image.data[0].url)
+
         return image.data[0].url
     } catch(e) {
-        ws.send(e)
+        ws.send(e.toString())
     }
 }
 
