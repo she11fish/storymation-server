@@ -2,6 +2,9 @@ import OpenAI from 'openai';
 import { config } from "dotenv";
 import axios from 'axios';
 import {WebSocketServer} from "ws";
+import {google} from "googleapis"
+import youtubedl from "youtube-dl-exec"
+import fs from "fs"
 import { rembg } from '@remove-background-ai/rembg.js'; 
 
 const wss = new WebSocketServer({ port: 5500 })
@@ -332,7 +335,8 @@ export async function emotionDetection(data, ws, prompt) {
             max_tokens: 2000,
             return_likelihoods: 'NONE',
             temperature: 0.3,
-            prompt: 'Describe the tone of ' + `"${prompt}"` + " in one word/adjective only"
+            // prompt: 'Describe the tone of ' + `"${prompt}"` + " in a single adjective."
+            prompt: 'Provided the input scenario ' + `"${prompt}"` + ", provide a single adjective as response."
         }
       };
       
