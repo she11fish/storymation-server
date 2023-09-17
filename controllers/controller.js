@@ -20,7 +20,7 @@ const openai = new OpenAI({
 });
 
 const messages = [{"role": "system", "content": `
-        You are a cartoony animation simulator. Given a story prompt, provide a list of sprites that would be required in the animation, and their exact position on the screen in percent. Include the start position as an action try to have scenes be less than 15 seconds.
+        You are a cartoony animation simulator. Given a story prompt, provide a list of sprites that would be required in the animation, and their exact position on the screen in percent. Include the start position as an action.
 
         Each input will be provided in the following JSON format: 
 
