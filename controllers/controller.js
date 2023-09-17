@@ -309,6 +309,8 @@ export async function prompt(data, ws) {
     // await runConversationGPT(data, ws, prompt)
     //await generateImage(data, ws, prompt)
     const promises = [
+        // generateScenes(data, ws, prompt),
+        generateMusic(data, ws, prompt)
         generateScenes(data, ws, prompt),
         // emotionDetection(data, ws, prompt)
         // Add more functions to run concurrently here if needed
@@ -334,7 +336,7 @@ export async function createImage(data, ws) {
     await generateImage(data, ws, prompt)
 }
 
-export async function emotionDetection(data, ws, prompt) {
+export async function generateMusic(data, ws, prompt) {
     const options = {
         method: 'POST',
         url: 'https://api.cohere.ai/v1/generate',
@@ -386,29 +388,8 @@ export async function emotionDetection(data, ws, prompt) {
         console.log(`Title: ${randomVideo.snippet.title}`);
         console.log(`Link: ${videoLink}`);
         console.log('---');
-        
-        youtubedl(videoLink, {
-            output: './music/theme.mp3'
-        }).then((output) => {
-            console.log('Download completed:', output);
-            sendMP3File(ws)
-        })
-          .catch((error) => {
-            console.error('Error:', error);
-        });
-    });
-}
 
-function sendMP3File(ws) {
-    const mp3FilePath = './music/theme.mp3';
-    const mp3FileStream = fs.createReadStream(mp3FilePath);
-
-    mp3FileStream.on('data', (data) => {
-        ws.send(data, { binary: true }, (error) => {
-            if (error) {
-                console.error('Error sending data:', error);
-            }
-        });
+        ws.send(JSON.stringify({ type: "youtube", value: videoLink}))
     });
 }
 
