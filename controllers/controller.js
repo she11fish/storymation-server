@@ -167,7 +167,7 @@ async function runConversationGPT(data, ws, prompt) {
         const response = await openai.chat.completions.create({
             model: "gpt-4",
             messages: messages,
-            temperature: 0.7
+            temperature: 0.6
         }); 
 
         var content = JSON.parse(response.choices[0].message.content); 
@@ -176,10 +176,19 @@ async function runConversationGPT(data, ws, prompt) {
             type: "story"
         }; 
         jsonDump["Characters"] = []; 
+        let max = 0;
         for (const element of content["Characters"]) {
+            
             const imageLink = await generateImage(data, ws, element["Type"] + ", " + element["Description"] + ", cartoony", false)
+            
             jsonDump["Characters"].push({ "Type": element["Type"], "Actions": element["Actions"], "Size": element["Size"], "Sprite": imageLink })
+            
+            for (const action of element["Actions"]){
+                let time = action["Time"].split(" ")[0]
+                if (time > max) max = time;
+            }
         }
+        jsonDump["length"] = max
         const backgroundImageLink = await generateImage(data, ws, "Background, " + content["Background"] + ", cartoony", true)
         jsonDump["Background"] = backgroundImageLink
 
@@ -191,7 +200,7 @@ async function runConversationGPT(data, ws, prompt) {
     
 }
 
-async function runConversationCohere(data, ws, prompt) {
+/*async function runConversationCohere(data, ws, prompt) {
     const options = {
         method: 'POST',
         url: 'https://api.cohere.ai/v1/generate',
@@ -232,7 +241,7 @@ async function runConversationCohere(data, ws, prompt) {
         console.error(e)
         ws.send(e.toString())
     }
-}
+}*/
 
 async function generateScenes(data, ws, prompt) {
     const options = {
@@ -256,14 +265,14 @@ async function generateScenes(data, ws, prompt) {
     try {
         const response = await axios.request(options)
         console.log(response.data.generations[0].text); 
-        var content = JSON.parse(response.data.generations[0].text); 
+        var content = JSON.parse(response.data.generations[0].text);
+        ws.send(JSON.stringify({type: "numberScenes", value: content["Scenes"].length})) 
         for (const element of content["Scenes"]) {
             await runConversationGPT(data, ws, element); 
         }
-        ws.send("Done")
     } catch(e) {
         console.error(e)
-        ws.send(e)
+        ws.send(e.toString())
     }
 }
 
@@ -281,9 +290,16 @@ export async function prompt(data, ws) {
     const prompt = data
     //await runConversationCohere(data, ws, prompt)
     // await runConversationGPT(data, ws, prompt)
-    await generateScenes(data, ws, prompt)
     //await generateImage(data, ws, prompt)
-    // await emotionDetection(data, ws, prompt)
+    const promises = [
+        generateScenes(data, ws, prompt),
+        emotionDetection(data, ws, prompt)
+        // Add more functions to run concurrently here if needed
+    ];
+
+    // Wait for all promises to resolve before continuing
+    await Promise.all(promises);
+    ws.send(JSON.stringify({type: "success"}))
 }
 
 export async function testGPT(data, ws) {
@@ -315,7 +331,7 @@ export async function emotionDetection(data, ws, prompt) {
             max_tokens: 2000,
             return_likelihoods: 'NONE',
             temperature: 0.3,
-            prompt: 'Describe ' + `"${prompt}"` + " in one word only"
+            prompt: 'Describe the tone of ' + `"${prompt}"` + " in one word/adjective only"
         }
       };
       
