@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { config } from "dotenv";
 import axios from 'axios';
 import {WebSocketServer} from "ws";
+import { rembg } from '@remove-background-ai/rembg.js'; 
 
 const wss = new WebSocketServer({ port: 5500 })
 
