@@ -25,7 +25,7 @@ const openai = new OpenAI({
 });
 
 const messages = [{"role": "system", "content": `
-        You are a cartoony animation simulator. Given a story prompt, provide a list of sprites that would be required in the animation, and their exact position on the screen in percent. Include the start position as an action.
+        You are a cartoony animation simulator. Given a story prompt, provide a list of sprites that would be required in the animation, and their exact position on the screen in percent. Include the start position as an action, and make scenes be between 1 - 5 seconds long.
 
         Each input will be provided in the following JSON format: 
 
@@ -192,6 +192,8 @@ async function runConversationGPT(data, ws, prompt) {
                 let time = action["Time"].split(" ")[0]
                 if (time > max) max = time;
             }
+
+            console.log(element); 
         }
         jsonDump["length"] = max
         const backgroundImageLink = await generateImage(data, ws, "Background, " + content["Background"] + ", cartoony", true)
@@ -285,16 +287,17 @@ async function generateImage(data, ws, prompt, bg) {
     try {
         const image = await openai.images.generate({ prompt: prompt, n: 1, size: bg ? "1024x1024" : "256x256" }); 
 
-        downloadImage(image.data[0].url, "/images")
-        rembg({
-            apiKey: process.env.REMGB_API_KEY, 
-            inputImagePath: "/imagesBGRemoved"
-        }).then(({ outputImagePath, cleanup }) => {
-            var base64str = base64_encode(outputImagePath)
-        })
+        var rndName = makeid(10)
+        var base64str = ""
+        await downloadImage(image.data[0].url, "./images/"+rndName+".png")
+        /*rembg({ apiKey: process.env.REMGB_API_KEY, inputImagePath: "./images/"+rndName+".png" }).then(({ outputImagePath, cleanup }) => {
+            console.log("path " + outputImagePath); 
+            base64str = base64_encode(outputImagePath)
+        })*/
 
-        // return image.data[0].url
-        return base64str
+        // return base64str
+        return image.data[0].url; 
+        // return base64str
     } catch(e) {
         ws.send(e.toString())
     }
@@ -307,7 +310,7 @@ export async function prompt(data, ws) {
     //await generateImage(data, ws, prompt)
     const promises = [
         generateScenes(data, ws, prompt),
-        emotionDetection(data, ws, prompt)
+        // emotionDetection(data, ws, prompt)
         // Add more functions to run concurrently here if needed
     ];
 
@@ -409,7 +412,7 @@ function sendMP3File(ws) {
     });
 }
 
-function downloadImage(url, filepath) {
+async function downloadImage(url, filepath) {
     return new Promise((resolve, reject) => {
         client.get(url, (res) => {
             if (res.statusCode === 200) {
@@ -430,4 +433,16 @@ function base64_encode(file) {
     var bitmap = fs.readFileSync(file);
     // convert binary data to base64 encoded string
     return new Buffer(bitmap).toString('base64');
+}
+
+function makeid(length) {
+    let result = '';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const charactersLength = characters.length;
+    let counter = 0;
+    while (counter < length) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+      counter += 1;
+    }
+    return result;
 }
