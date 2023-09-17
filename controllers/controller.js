@@ -336,7 +336,7 @@ export async function emotionDetection(data, ws, prompt) {
             return_likelihoods: 'NONE',
             temperature: 0.3,
             // prompt: 'Describe the tone of ' + `"${prompt}"` + " in a single adjective."
-            prompt: 'Provided the input scenario ' + `"${prompt}"` + ", provide a single adjective as response."
+            prompt: 'You are a summarizer. Given an input scenario, provide a single adjective as response.\nScenario: ' + `"${prompt}"` + "\nYour adjective response: ",
         }
       };
       
