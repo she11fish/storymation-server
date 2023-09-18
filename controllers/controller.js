@@ -161,6 +161,8 @@ const initSceneMsg = `You will be provided a story as input. Break down the stor
 }
 \\end
 
+DO NOT generate too much additional plot. Simply separate the given plot into different scenes. 
+
 Your input:
 "`; 
 
@@ -289,7 +291,7 @@ async function generateImage(data, ws, prompt, bg) {
 
         var rndName = makeid(10)
         var base64str = ""
-        await downloadImage(image.data[0].url, "./images/"+rndName+".png")
+        // await downloadImage(image.data[0].url, "./images/"+rndName+".png")
         /*rembg({ apiKey: process.env.REMGB_API_KEY, inputImagePath: "./images/"+rndName+".png" }).then(({ outputImagePath, cleanup }) => {
             console.log("path " + outputImagePath); 
             base64str = base64_encode(outputImagePath)
@@ -384,10 +386,8 @@ export async function generateMusic(data, ws, prompt) {
             }
         }
         
-        const videoLink = `https://www.youtube.com/watch?v=${randomVideo.id.videoId}`
-        console.log(`Title: ${randomVideo.snippet.title}`);
-        console.log(`Link: ${videoLink}`);
-        console.log('---');
+        const videoLink = `https://www.youtube.com/watch?v=${"2jsdadaokw"}`
+       //
 
         ws.send(JSON.stringify({ type: "youtube", value: videoLink}))
     });
